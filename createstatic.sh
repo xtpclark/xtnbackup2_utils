@@ -12,7 +12,7 @@ MAILPRGM=`which mutt`
 if [ -z $MAILPRGM ]; then
 true
 else
-$MAILPRGM -e 'set content_type="text/plain"' $STATICMTO -s "Reporting Database Status" < ${LOG_FILE}
+sudo $MAILPRGM -e 'set content_type="text/plain"' $STATICMTO -s "Reporting Database Status" < ${LOG_FILE}
 RET=$?
 rm ${LOG_FILE}
 fi
@@ -20,7 +20,7 @@ fi
 
 createstatic()
 {
-log_exec pg_ctlcluster 9.3 $STATICCLUSTER stop --force
+log_exec sudo pg_ctlcluster ${PGVER} $STATICCLUSTER stop --force
 RET=$?
 if [ $RET -eq 1 ]; then
 log "Couldn't stop cluster"
@@ -30,7 +30,7 @@ else
 log "Stopped $STATICCLUSTER"
 fi
 
-log_exec pg_ctlcluster 9.3 $STATICCLUSTER start
+log_exec sudo pg_ctlcluster ${PGVER} $STATICCLUSTER start
 RET=$?
 if [ $RET -eq 1 ]; then
  log "Couldn't start cluster"
@@ -41,7 +41,7 @@ log "Restarted $STATICCLUSTER"
 fi
 
 # Alternate SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${STATICDB}'; DROP DATABASE ${STATICDB};
-log_exec dropdb -U $PGUSER -p $STATICPORT $STATICDB
+log_exec sudo dropdb -U $PGUSER -p $STATICPORT $STATICDB
 RET=$?
 if [ $RET -eq 1 ]; then
  log "Couldn't drop db"
@@ -51,7 +51,7 @@ else
 log "Dropped ${STATICDB} on ${STATICPORT}"
 fi
 
-log_exec createdb -U $PGUSER -p $STATICPORT $STATICDB
+log_exec sudo createdb -U $PGUSER -p $STATICPORT $STATICDB
 RET=$?
 if [ $RET -eq 1 ]; then
  log "Couldn't create db"
@@ -61,7 +61,7 @@ else
 log "Created ${STATICDB}"
 fi
 
-log_exec pg_restore --host $PGHOST  --port $STATICPORT -j10 --username $PGUSER -d $STATICDB ${ARCHIVEDIR}/${STATICBACKUPFILE}
+log_exec sudo pg_restore --host $PGHOST  --port $STATICPORT -j10 --username $PGUSER -d $STATICDB ${ARCHIVEDIR}/${STATICBACKUPFILE}
 RET=$?
 if [ $RET -eq 1 ]; then
  log "Couldn't restore db ${STATICDB} on ${STATICPORT}"
@@ -78,7 +78,7 @@ fi
 createstaticdbcopy()
 {
 log "Creating ${STATICDBCOPY} Database"
-log_exec $PGBIN/psql -U $PGUSER -h $PGHOST -p $STATICPORT -c "DROP DATABASE ${STATICDBCOPY};"
+log_exec sudo $PGBIN/psql -U $PGUSER -h $PGHOST -p $STATICPORT -c "DROP DATABASE ${STATICDBCOPY};"
 RET=$?
 if [ $RET -eq 1 ]; then
  log "Couldn't drop ${STATICDBCOPY} db"
@@ -86,7 +86,7 @@ sendlog
  exit 1;
 fi
 
-log_exec $PGBIN/psql -U $PGUSER -h $PGHOST -p $STATICPORT -c "CREATE DATABASE ${STATICDBCOPY} OWNER admin TEMPLATE ${STATICDB};"
+log_exec sudo $PGBIN/psql -U $PGUSER -h $PGHOST -p $STATICPORT -c "CREATE DATABASE ${STATICDBCOPY} OWNER admin TEMPLATE ${STATICDB};"
 RET=$?
 if [ $RET -eq 1 ]; then
  log "Couldn't create ${STATICDBCOPY} db"
